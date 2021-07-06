@@ -1,0 +1,34 @@
+[{
+  "rating": 10,
+  "ingredients": ["tequila", "sour mix", "tequila", "sour mix", "tequila", "sour mix"]
+}, {
+  "rating": 5,
+  "ingredients": ["coca cola", "tequila", "coca cola"]
+}, {
+  "rating": 8,
+  "ingredients": ["tequila", "blue curacao", "sour mix"]
+}, {
+  "rating": 1,
+  "ingredients": ["coca cola", "soda water"]
+}, {
+  "rating": 1,
+  "ingredients": ["coca cola", "simple syrup"]
+}, {
+  "rating": 1,
+  "ingredients": ["coca cola", "orange juice"]
+}, {
+  "rating": 1,
+  "ingredients": ["orange juice", "simple syrup"]
+}, {
+  "rating": 1,
+  "ingredients": ["chambord", "simple syrup"]
+}, {
+  "rating": 7,
+  "ingredients": ["sour mix", "tequila", "simple syrup", "soda water"]
+}, {
+  "rating": 6,
+  "ingredients": ["tequila", "chambord", "blue curacao", "soda water"]
+}, {
+  "rating": 8,
+  "ingredients": ["tequila", "orange juice", "chambord"]
+}]
