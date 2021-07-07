@@ -16,8 +16,12 @@ if len(sys.argv) > 1:
     # write ratings into training set
     for i, recipe in enumerate(training_data):
       recipe['rating'] = ratings[i]
-      with open('./training_set_db.json', 'w') as file:
-        json.dump(training_data, file, indent=2)
+
+    with open('./training_set_db.json', 'w') as file:
+      json.dump(training_data, file, indent=2)
+  elif sys.argv[1] == '--reset':
+    with open('./ratings.txt', 'w') as file:
+      file.write('')
   else:
     print('--apply: overwrite ratings in the data set (cannot be undone)')
     print('--reset: delete all rating progress (cannot be undone)')
@@ -47,6 +51,7 @@ prev = len(ratings)
 
 if prev == end:
   print('all drinks have been rated. call with --pass or manually clear ratings.txt to start over')
+  sys.exit(0)
 
 for i in range(prev, end):
   recipe = training_data[i]
@@ -63,4 +68,5 @@ for i in range(prev, end):
     # save('ratings.txt', ratings)
     break
 
-print('you did it!')
+if prev == end:
+  print('you did it!')

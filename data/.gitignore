@@ -1,4 +1,7 @@
 *.js
 *.txt
+*.sh
 !ratings.txt
+!nouns.txt
+!adjs.txt
 cocks.json

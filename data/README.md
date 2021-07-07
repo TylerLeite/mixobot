@@ -2,7 +2,9 @@
 
 `cocks_small.json`: modified from a public database of cocktails to remove a lot of unnecessary data, normalize the format of recipes, remove duplicate ingredients, correct typos, and format the data so it's easy for us to digest
 
-`ingredients.json`: a list of all ingredients used in cocktails stored in cocks_small.json
+`measures.json`: a list of all ingredients used in cocktails stored in cocks_small.json, along with what unit they are usually measured in
+
+`stock.json`: a list of all ingredients you own IRL. used to limit recipes to only ones you can actually make
 
 `training_set_db.json`: training set for the ml algorithm, generated from the recipes listed in cocks_small.json
 
@@ -11,3 +13,7 @@
 `ratings.txt`: manually-defined list of ratings (1-10, inclusive) for the drinks held in cocks_small.json
 
 `rate_cocks.py`: tool for assigning ratings to drinks
+
+`nouns.txt`: list of the 100 most common nouns according to some website. used for generating drink names
+
+`adjs.txt`: list of the 100 most common adjectives according to some website. used for generating drink names
