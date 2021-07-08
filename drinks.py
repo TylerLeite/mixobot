@@ -18,7 +18,7 @@ TITLE = '''
 BASE_INGREDIENT = None
 
 # Whether to restrict ingredients to those listed above
-LIMIT_INGREDIENT_LIST = False
+LIMIT_INGREDIENT_LIST = 'auto'
 
 # Whether to allow updating the same edge >1 times during a training session
 TRAIN_WITH_DUPLICATES = False
@@ -34,7 +34,7 @@ d = 0.1 # scale factor for updating edge weights
 G = 8   # training iterations
 
 W = 1   # in range (0, 1], lower number means higher bar for drink quality
-n = 0.6 # in range (0, 1], lower number means more ingredients
+z = 0.6 # in range (0, 1], lower number means more ingredients
 q = 1   # > 1 means cocktail generation is more random, < 1 is less random
 
 L = 5   # max number of total ingredients in a drink (not unique ingredients)
@@ -43,6 +43,9 @@ l = 3   # min number of total ingredients in a drink (not unique ingredients)
 N = 4   # number of cocktails to generate
 m = 0.6 # minimum acceptable average weight when generating cocktails
 M = 0.8 # maximum acceptable average weight when generating cocktails
+
+O = 5 # number of nuclei for automatic ingredient limitation
+X = 6 # number of edges per nucleus for automatic ingredient limitation
 
 # Data from files
 ingredient_measures = None
@@ -136,7 +139,7 @@ def random_recipe(graph, ingredient_list, start=None):
     # This fitness function has a higher standard for ingredient synergy the
     #  fewer unique ingredients there are in the recipe
     avg_weight = get_average_weight(graph, recipe)
-    if avg_weight*W >= (1-n*len(set(recipe))/L):
+    if avg_weight*W >= (1-z*len(set(recipe))/L):
       break
 
     else:
@@ -170,6 +173,10 @@ def recipe_to_string(quality, recipe):
 
     if unit == 'half-oz':
       measure /= 2
+      unit = 'oz'
+
+    if unit == '2oz':
+      measure *= 2
       unit = 'oz'
 
     if int(measure) == measure:
@@ -233,10 +240,53 @@ def get_subgraph(full_graph, ingredient_list):
 
   return subgraph
 
+def identify_nuclei(graph, ingredient_list, n=20):
+  scores = []
+
+  for a in ingredient_list:
+    acc = 0
+    for b in ingredient_list:
+      if a == b:
+        continue
+      else:
+        acc += graph[key(a, b)]
+    scores.append({
+      'name': a,
+      'score': acc,
+    })
+
+  scores.sort(reverse=True, key=lambda x: x['score'])
+  return [s['name'] for s in scores[:n]]
+
+def cluster_from_nuclei(graph, ingredient_list, nuclei, n=5):
+  cool_kids = []
+  for nucleus in nuclei:
+    edges = []
+    for b in ingredient_list:
+      if nucleus == b:
+        continue
+      else:
+        edges.append({
+          'edge': b,
+          'weight': graph[key(nucleus, b)]
+        })
+    edges.sort(reverse=True, key=lambda x: x['weight'])
+    cool_kids += [e['edge'] for e in edges[:n]]
+
+  return list(set(cool_kids))
+
+def print_cluster(weights, ingredients):
+  nuclei = identify_nuclei(weights, ingredients, O)
+  cluster = c5luster_from_nuclei(weights, ingredients, nuclei, X)
+
+  cluster.sort()
+  for i, ingredient in enumerate(cluster):
+    print(f'{i+1}. {ingredient}')
+
 # Load training data, train a graph, generate 10 recipes
 def main():
   _weights, all_ingredients = train('./data/training_set_db.json')
-  if LIMIT_INGREDIENT_LIST:
+  if LIMIT_INGREDIENT_LIST == 'manual':
     ingredients = []
     with open('./data/stock.json') as file:
       stock = json.load(file)
@@ -244,6 +294,12 @@ def main():
         if v:
           ingredients.append(k)
     weights = get_subgraph(_weights, ingredients)
+  elif LIMIT_INGREDIENT_LIST == 'auto':
+    nuclei = identify_nuclei(_weights, all_ingredients, O)
+    ingredients = cluster_from_nuclei(_weights, all_ingredients, nuclei, X)
+    weights = get_subgraph(_weights, ingredients)
+    with open('./data/.auto-ingredients.txt', 'w') as file:
+      file.write('\n'.join([f'{i+1}. {g}' for i, g in enumerate(sorted(ingredients))]))
   else:
     weights, ingredients = _weights, all_ingredients
 
@@ -264,6 +320,7 @@ def main():
       print(recipe_to_string(avg_weight, recipe))
       n_recipes += 1
     sanity = max(sanity-1, 0)
+
 
 if __name__ == '__main__':
   main()
