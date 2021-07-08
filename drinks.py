@@ -16,9 +16,11 @@ TITLE = '''
 # Force drinks to include this ingredient
 # Note: set this to None when not in use
 BASE_INGREDIENT = None
+GENERATE_MENU = ['tequila', 'bourbon', 'white rum', 'vodka', 'gin']
+GENERATE_MENU_UNIQUE = True
 
 # Whether to restrict ingredients to those listed above
-LIMIT_INGREDIENT_LIST = 'auto'
+LIMIT_INGREDIENT_LIST = 'manual'
 
 # Whether to allow updating the same edge >1 times during a training session
 TRAIN_WITH_DUPLICATES = False
@@ -35,7 +37,7 @@ G = 8   # training iterations
 
 W = 1   # in range (0, 1], lower number means higher bar for drink quality
 z = 0.6 # in range (0, 1], lower number means more ingredients
-q = 1   # > 1 means cocktail generation is more random, < 1 is less random
+q = 2   # > 1 means cocktail generation is more random, < 1 is less random
 
 L = 5   # max number of total ingredients in a drink (not unique ingredients)
 l = 3   # min number of total ingredients in a drink (not unique ingredients)
@@ -44,8 +46,8 @@ N = 4   # number of cocktails to generate
 m = 0.6 # minimum acceptable average weight when generating cocktails
 M = 0.8 # maximum acceptable average weight when generating cocktails
 
-O = 5 # number of nuclei for automatic ingredient limitation
-X = 6 # number of edges per nucleus for automatic ingredient limitation
+O = 5   # number of nuclei for automatic ingredient limitation
+X = 6   # number of edges per nucleus for automatic ingredient limitation
 
 # Data from files
 ingredient_measures = None
@@ -116,7 +118,12 @@ def random_recipe(graph, ingredient_list, start=None):
         # TODO: check if ingredient is in recipe so far?
         continue
 
+      # Sometimes you want a drink with just 1 kind of hard liquor
+      if GENERATE_MENU_UNIQUE and ingredient in GENERATE_MENU:
+        continue
+
       biased_rand = random.random()*q*graph[key(start, ingredient)]
+
       if biased_rand > max_rand_so_far:
         max_rand_so_far = biased_rand
         next_ingredient = ingredient
@@ -258,7 +265,7 @@ def identify_nuclei(graph, ingredient_list, n=20):
   return [s['name'] for s in scores[:n]]
 
 def cluster_from_nuclei(graph, ingredient_list, nuclei, n=5):
-  cool_kids = []
+  cool_kids = [nucleus for nucleus in nuclei]
   for nucleus in nuclei:
     edges = []
     for b in ingredient_list:
@@ -284,6 +291,8 @@ def print_cluster(weights, ingredients):
 
 # Load training data, train a graph, generate 10 recipes
 def main():
+  os.system('cls||clear')
+
   _weights, all_ingredients = train('./data/training_set_db.json')
   if LIMIT_INGREDIENT_LIST == 'manual':
     ingredients = []
@@ -294,7 +303,9 @@ def main():
           ingredients.append(k)
     weights = get_subgraph(_weights, ingredients)
   elif LIMIT_INGREDIENT_LIST == 'auto':
-    nuclei = identify_nuclei(_weights, all_ingredients, O)
+    nuclei = GENERATE_MENU
+    if nuclei is None:
+      nuclei = identify_nuclei(_weights, all_ingredients, O)
     ingredients = cluster_from_nuclei(_weights, all_ingredients, nuclei, X)
     weights = get_subgraph(_weights, ingredients)
     with open('./data/.auto-ingredients.txt', 'w') as file:
@@ -302,23 +313,38 @@ def main():
   else:
     weights, ingredients = _weights, all_ingredients
 
-  os.system('cls||clear')
   print(TITLE)
 
-  n_recipes = 0  # number of recipes to try and make
   sanity = 10000 # as time goes on, lower your standards
-  while n_recipes < N:
-    recipe = random_recipe(weights, ingredients, start=BASE_INGREDIENT)
-    avg_weight = get_average_weight(weights, recipe)
 
-    # Check that the quality recipe is within the specified range of values
-    #  (scaled by the sanity factor, so the more failures there are to find a
-    #  recipe that is good enough, the lower the bar is set for "good enough")
-    # Note: at sanity == 0, any recipe will be accepted as good enough
-    if avg_weight > m*sanity/10000 and avg_weight < M + (1-M)*(1-sanity/10000):
-      print(recipe_to_string(avg_weight, recipe))
-      n_recipes += 1
-    sanity = max(sanity-1, 0)
+  # Special option to generate 1 drink for each of several ingredients
+  if GENERATE_MENU is not None:
+    for base_ingredient in GENERATE_MENU:
+      sanity = 10000
+
+      not_unique = False
+      while True:
+        recipe = random_recipe(weights, ingredients, start=base_ingredient)
+        avg_weight = get_average_weight(weights, recipe)
+
+        if avg_weight > m*sanity/10000 and avg_weight < M + (1-M)*(1-sanity/10000):
+          print(recipe_to_string(avg_weight, recipe))
+          break
+        sanity = max(sanity-1, 0)
+  else:
+    n_recipes = 0  # number of recipes to try and make
+    while n_recipes < N:
+      recipe = random_recipe(weights, ingredients, start=BASE_INGREDIENT)
+      avg_weight = get_average_weight(weights, recipe)
+
+      # Check that the quality recipe is within the specified range of values
+      #  (scaled by the sanity factor, so the more failures there are to find a
+      #  recipe that is good enough, the lower the bar is set for "good enough")
+      # Note: at sanity == 0, any recipe will be accepted as good enough
+      if avg_weight > m*sanity/10000 and avg_weight < M + (1-M)*(1-sanity/10000):
+        print(recipe_to_string(avg_weight, recipe))
+        n_recipes += 1
+      sanity = max(sanity-1, 0)
 
 if __name__ == '__main__':
   main()
